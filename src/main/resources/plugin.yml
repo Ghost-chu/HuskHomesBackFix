@@ -1,0 +1,6 @@
+name: HuskHomesBackFix
+version: '${project.version}'
+main: com.ghostchu.huskhomesbackfix.HuskHomesBackFix
+api-version: 1.16
+depend:
+  - HuskHomes
