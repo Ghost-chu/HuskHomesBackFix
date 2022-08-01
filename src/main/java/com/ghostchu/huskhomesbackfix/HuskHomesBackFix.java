@@ -21,10 +21,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 public final class HuskHomesBackFix extends JavaPlugin implements Listener {
-
-    private final Cache<UUID, Long> timeCacheMap = CacheBuilder.newBuilder()
+    private final static Object EMPTY_OBJECT = new Object();
+    private final Cache<UUID, Object> timeCacheMap = CacheBuilder.newBuilder()
             .expireAfterWrite(5, TimeUnit.SECONDS)
             .build();
+
+    @Override
+    public void onDisable() {
+        // Plugin shutdown logic
+    }
 
     @Override
     public void onEnable() {
@@ -32,14 +37,9 @@ public final class HuskHomesBackFix extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(this, this);
     }
 
-    @Override
-    public void onDisable() {
-        // Plugin shutdown logic
-    }
-
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onLogin(PlayerJoinEvent event) {
-        this.timeCacheMap.put(event.getPlayer().getUniqueId(), System.currentTimeMillis());
+        this.timeCacheMap.put(event.getPlayer().getUniqueId(), EMPTY_OBJECT);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
