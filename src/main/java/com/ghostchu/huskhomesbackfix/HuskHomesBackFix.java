@@ -2,9 +2,13 @@ package com.ghostchu.huskhomesbackfix;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import me.william278.huskhomes2.HuskHomes;
-import me.william278.huskhomes2.data.DataManager;
-import me.william278.huskhomes2.teleport.points.TeleportationPoint;
+import net.william278.huskhomes.BukkitHuskHomes;
+import net.william278.huskhomes.api.HuskHomesAPI;
+import net.william278.huskhomes.player.User;
+import net.william278.huskhomes.position.Location;
+import net.william278.huskhomes.position.Position;
+import net.william278.huskhomes.position.Server;
+import net.william278.huskhomes.position.World;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -14,8 +18,6 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -48,14 +50,23 @@ public final class HuskHomesBackFix extends JavaPlugin implements Listener {
         if (player.hasMetadata("NPC") || !(event.getCause() == PlayerTeleportEvent.TeleportCause.PLUGIN || event.getCause() == PlayerTeleportEvent.TeleportCause.COMMAND)) {
             return;
         }
-        if (this.timeCacheMap.getIfPresent(event.getPlayer().getUniqueId()) != null)
+        if (this.timeCacheMap.getIfPresent(event.getPlayer().getUniqueId()) != null) {
             return;
+        }
+        if (event.getTo() == null) return;
         Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
-            try (Connection connection = HuskHomes.getConnection()) {
-                DataManager.setPlayerLastPosition(player, new TeleportationPoint(event.getFrom(), HuskHomes.getSettings().getServerID()), connection);
-            } catch (SQLException exception) {
-                getLogger().log(Level.WARNING, "Failed to save player last position", exception);
-            }
+            User user = HuskHomesAPI.getInstance().adaptUser(player);
+            Server server = HuskHomesAPI.getInstance().getServer();
+            org.bukkit.Location bloc = event.getTo();
+            if (bloc.getWorld() == null) return;
+            World world = new World(bloc.getWorld().getName(), bloc.getWorld().getUID());
+            Position position = new Position(new Location(bloc.getX(), bloc.getY(), bloc.getZ(), world), server);
+            BukkitHuskHomes.getInstance().getDatabase().setLastPosition(user, position)
+                    .whenComplete((result, err) -> {
+                        if (err != null) {
+                            getLogger().log(Level.WARNING, "Failed to set last position for player " + player.getName(), err);
+                        }
+                    });
         });
 
     }
